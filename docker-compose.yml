@@ -1,0 +1,57 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: asesuisa-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env}
+      MSSQL_PID: "Developer"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+      # Nota: el contenedor mssql NO ejecuta los scripts de /database automaticamente.
+      # Aplicalos una vez manualmente con sqlcmd (ver README, seccion Docker).
+      - ./database:/database
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q \"SELECT 1\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: asesuisa-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__ConsultoraDb: "Server=sqlserver,1433;Database=ConsultoraDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env};TrustServerCertificate=True;"
+      Jwt__Issuer: "ConsultoraApi"
+      Jwt__Audience: "ConsultoraFrontend"
+      Jwt__SecretKey: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}
+      Jwt__ExpiryMinutes: "120"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    volumes:
+      - api-logs:/app/logs
+    expose:
+      - "8080"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: asesuisa-web
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+volumes:
+  sqlserver-data:
+  api-logs:

@@ -1,0 +1,494 @@
+{
+  "info": {
+    "name": "Consultora API - Evaluacion Tecnica 2026-A",
+    "description": "Coleccion para probar el backend .NET 8. Variables: {{baseUrl}}, {{adminToken}}, {{userToken}}, {{refreshToken}}. Ejecute primero los dos login; los scripts guardan automaticamente los tokens (y el refresh token). Incluye los modulos: Auth (login, refresh y logout), Paquetes, Consultores, Reportes, Areas, Asignacion de paquetes por consultor y Auditoria (solo Admin).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5058/api/v1" },
+    { "key": "adminToken", "value": "" },
+    { "key": "userToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "paqueteId", "value": "1" },
+    { "key": "consultorId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data && json.data.token) {",
+                  "  pm.collectionVariables.set('adminToken', json.data.token);",
+                  "  pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@consultora.test\",\n  \"password\": \"Admin@123\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data && json.data.token) {",
+                  "  pm.collectionVariables.set('userToken', json.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@consultora.test\",\n  \"password\": \"User@123\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Login credenciales invalidas (401)",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@consultora.test\",\n  \"password\": \"incorrecta\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Refresh token (renovar sesion)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (pm.response.code === 200 && json && json.data && json.data.token) {",
+                  "  pm.collectionVariables.set('adminToken', json.data.token);",
+                  "  pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/refresh"
+          }
+        },
+        {
+          "name": "Refresh token invalido (401)",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"token-falso\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/refresh"
+          }
+        },
+        {
+          "name": "Logout (revocar sesion)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.set('refreshToken', '');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/logout"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paquetes",
+      "item": [
+        {
+          "name": "Listar paquetes",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ],
+            "url": {
+              "raw": "{{baseUrl}}/paquetes?page=1&pageSize=10&sortBy=Precio&sortDir=desc&area=Tecnologia",
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "10" },
+                { "key": "sortBy", "value": "Precio" },
+                { "key": "sortDir", "value": "desc" },
+                { "key": "area", "value": "Tecnologia" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Obtener paquete por id",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ],
+            "url": "{{baseUrl}}/paquetes/{{paqueteId}}"
+          }
+        },
+        {
+          "name": "Crear paquete (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Paquete de ejemplo\",\n  \"descripcion\": \"Creado desde Postman\",\n  \"area\": \"Estrategia\",\n  \"precio\": 1234.50\n}"
+            },
+            "url": "{{baseUrl}}/paquetes"
+          }
+        },
+        {
+          "name": "Actualizar paquete (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Paquete de ejemplo actualizado\",\n  \"descripcion\": \"Actualizado\",\n  \"area\": \"Estrategia\",\n  \"precio\": 1500.00,\n  \"activo\": true\n}"
+            },
+            "url": "{{baseUrl}}/paquetes/{{paqueteId}}"
+          }
+        },
+        {
+          "name": "Eliminar paquete (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ],
+            "url": "{{baseUrl}}/paquetes/{{paqueteId}}"
+          }
+        },
+        {
+          "name": "Paquete inexistente (404)",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ],
+            "url": "{{baseUrl}}/paquetes/99999999"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Consultores",
+      "item": [
+        {
+          "name": "Listar consultores",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ],
+            "url": {
+              "raw": "{{baseUrl}}/consultores?page=1&pageSize=10&sortBy=TarifaHora&sortDir=desc",
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "10" },
+                { "key": "sortBy", "value": "TarifaHora" },
+                { "key": "sortDir", "value": "desc" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Obtener consultor por id",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ],
+            "url": "{{baseUrl}}/consultores/{{consultorId}}"
+          }
+        },
+        {
+          "name": "Crear consultor (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombreCompleto\": \"Patricia Gimenez Luna\",\n  \"email\": \"patricia.gimenez@correo.test\",\n  \"area\": \"Tecnologia\",\n  \"tarifaHora\": 135.00,\n  \"proyectosActivos\": 2\n}"
+            },
+            "url": "{{baseUrl}}/consultores"
+          }
+        },
+        {
+          "name": "Actualizar consultor (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombreCompleto\": \"Patricia Gimenez Luna\",\n  \"email\": \"patricia.gimenez@correo.test\",\n  \"area\": \"Tecnologia\",\n  \"tarifaHora\": 145.00,\n  \"activo\": true,\n  \"proyectosActivos\": 3\n}"
+            },
+            "url": "{{baseUrl}}/consultores/{{consultorId}}"
+          }
+        },
+        {
+          "name": "Eliminar consultor (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ],
+            "url": "{{baseUrl}}/consultores/{{consultorId}}"
+          }
+        },
+        {
+          "name": "Consultor email duplicado (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombreCompleto\": \"Otra Persona\",\n  \"email\": \"ana.martinez@correo.test\",\n  \"area\": \"Finanzas\",\n  \"tarifaHora\": 90.00,\n  \"proyectosActivos\": 1\n}"
+            },
+            "url": "{{baseUrl}}/consultores"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reportes",
+      "item": [
+        {
+          "name": "Paquetes por area",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/paquetes-por-area?page=1&pageSize=10&sortBy=TotalMonto&sortDir=desc&activo=true",
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "10" },
+                { "key": "sortBy", "value": "TotalMonto" },
+                { "key": "sortDir", "value": "desc" },
+                { "key": "activo", "value": "true" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Consultores top facturacion",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{adminToken}}" } ],
+            "url": {
+              "raw": "{{baseUrl}}/reportes/consultores-top-facturacion?page=1&pageSize=10&sortBy=FacturacionEstimada&sortDir=desc",
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "10" },
+                { "key": "sortBy", "value": "FacturacionEstimada" },
+                { "key": "sortDir", "value": "desc" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Areas",
+      "item": [
+        {
+          "name": "Listar areas",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": "{{baseUrl}}/areas"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paquetes por consultor",
+      "item": [
+        {
+          "name": "Listar paquetes del consultor",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": "{{baseUrl}}/consultores/{{consultorId}}/paquetes"
+          }
+        },
+        {
+          "name": "Asignar paquete a consultor (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paqueteId\": 1\n}"
+            },
+            "url": "{{baseUrl}}/consultores/{{consultorId}}/paquetes"
+          }
+        },
+        {
+          "name": "Desasignar paquete (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": "{{baseUrl}}/consultores/{{consultorId}}/paquetes/{{paqueteId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auditoria",
+      "item": [
+        {
+          "name": "Listar bitacora (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria?page=1&pageSize=10&sortBy=FechaHora&sortDir=desc&entidad=Paquete&accion=Create",
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "10" },
+                { "key": "sortBy", "value": "FechaHora" },
+                { "key": "sortDir", "value": "desc" },
+                { "key": "entidad", "value": "Paquete" },
+                { "key": "accion", "value": "Create" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Casos de error / autorizacion",
+      "item": [
+        {
+          "name": "Sin token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/paquetes"
+          }
+        },
+        {
+          "name": "User intenta crear paquete (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{userToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Intento no permitido\",\n  \"descripcion\": \"x\",\n  \"area\": \"Finanzas\",\n  \"precio\": 100\n}"
+            },
+            "url": "{{baseUrl}}/paquetes"
+          }
+        },
+        {
+          "name": "User intenta eliminar consultor (403)",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "Authorization", "value": "Bearer {{userToken}}" } ],
+            "url": "{{baseUrl}}/consultores/1"
+          }
+        },
+        {
+          "name": "Crear paquete con precio negativo (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Invalido\",\n  \"area\": \"Finanzas\",\n  \"precio\": -10\n}"
+            },
+            "url": "{{baseUrl}}/paquetes"
+          }
+        },
+        {
+          "name": "Crear consultor con tarifa fuera de rango (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombreCompleto\": \"Caso invalido\",\n  \"email\": \"caso.invalido@correo.test\",\n  \"area\": \"Finanzas\",\n  \"tarifaHora\": 500.00,\n  \"proyectosActivos\": 1\n}"
+            },
+            "url": "{{baseUrl}}/consultores"
+          }
+        }
+      ]
+    }
+  ]
+}
